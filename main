@@ -1,0 +1,210 @@
+### holly molly cant believe its finally over
+
+import sqlite3
+import random
+
+
+db = sqlite3.connect('card.s3db')
+
+cursor = db.cursor()
+
+cursor.execute("""CREATE TABLE IF NOT EXISTS card(
+id INTEGER,
+number TEXT,
+pin TEXT,
+balance INTEGER 
+)""")
+
+
+class Card():
+    x = random.randint(0, 9)
+
+
+    def __init__(self):
+        self.card_num = ""
+        self.a = ''
+        self.b = ''
+        self.pin = ''
+        self.apin = ''
+        self.checksum = 0
+        self.check = ''
+        self.balance = 0
+        self.work = 0
+        self.cardid = 0
+
+
+
+
+
+    def create_card(self):
+        self.a = ''
+        self.b = ''
+        self.card_num = ""
+        self.pin = ''
+        self.work = 0
+        while self.work != 1:
+            x = random.randint(0, 9)
+            self.a = ''
+            self.b = ''
+            for num in range(9):
+                self.a = str(random.randint(0, 9))
+                self. b += str(self.a)
+            self.card_num = "400000" + self.b + str(x)
+            check = self.card_num
+            e = list(check)
+            e.pop()
+            for i in range(0, len(e)):
+                e[i] = int(e[i])
+            for el in (range(0, len(e))):
+                if el % 2 == 0:
+                    e[el] *= 2
+            for el in (range(0, len(e))):
+                if e[el] > 9:
+                    e[el] -= 9
+            self.x = int(check[15])
+            summ = 0
+            for el in (range(0, len(e))):
+                summ += e[el]
+            if summ + int(check[15]) == 60:
+                print("Your card number: ")
+                print(self.card_num)
+                self.work += 1
+        for self.apin in range(4):
+            self.apin = str(random.randint(0, 9))
+            self.pin += str(self.apin)
+        print("Your card PIN:")
+        print(self.pin)
+        self.cardid += 1
+        add_to(self.cardid, self.card_num, self.pin, self.balance)
+
+    def luhn(self):
+        self.check = self.card_num
+        for el in self.check[:-2]:
+            if el % 2 == 0:
+                el = el*2
+        pass
+
+    def login(self, a, b):
+        try:
+            x = cursor.execute(f"SELECT number FROM card WHERE pin = '{b}'").fetchone()[0]
+            y = cursor.execute(f"SELECT pin FROM card WHERE number = '{a}'").fetchone()[0]
+            if a == x and b == y:
+                return True
+        except:
+            return False
+
+
+def luhn_checksum(card_number):
+    def digits_of(n):
+        return [int(d) for d in str(n)]
+    digits = digits_of(card_number)
+    odd_digits = digits[-1::-2]
+    even_digits = digits[-2::-2]
+    checksum = 0
+    checksum += sum(odd_digits)
+    for d in even_digits:
+        checksum += sum(digits_of(d*2))
+    return checksum % 10
+
+def checkcard(card_number):
+    return luhn_checksum(card_number) == 0
+
+
+def balance(cardid):
+    return cursor.execute(f"SELECT balance FROM card WHERE number = '{cardid}'").fetchone()[0]
+
+
+
+def put(cardid, howmuch):
+    cursor.execute(f"UPDATE card SET balance = balance + {howmuch} WHERE number = {cardid}")
+    db.commit()
+
+
+def add_to(idd, number, pin, balance=0):
+    cursor.execute("INSERT INTO card VALUES (?,?,?,?)", (idd, number, pin, balance))
+    db.commit()
+
+
+def close(cardnum):
+    cursor.execute(f"DELETE FROM card WHERE number = {cardnum}")
+    db.commit()
+
+
+def send(sender, cardnum, howmuch):
+    cursor.execute(f"UPDATE card SET balance = balance + {howmuch} WHERE number = {cardnum}")
+    cursor.execute(f"UPDATE card SET balance = balance - {howmuch} WHERE number = {sender}")
+    db.commit()
+
+
+card = Card()
+
+choice = ''
+choice2 = ''
+cardid = 0
+
+while choice != '0':
+    print("""1. Create an account
+2. Log into account
+0. Exit""")
+    choice = input()
+    if choice == "1":
+        card.create_card()
+    if choice == "2":
+        a = input("Enter your card number: ")
+        b = input("Enter PIN: ")
+        if card.login(a, b):
+            print("You have successfully logged in!")
+            while True:
+                print("1. Balance")
+                print("2. Add income")
+                print("3. Do transfer")
+                print("4. Close account")
+                print("5. Log out")
+                print("0. Exit")
+                choice2 = input()
+                if choice2 == "1":
+                    print(f'Balance: {balance(str(a))}')
+                elif choice2 == "2":
+                    print("Enter income: ")
+                    mmm = int(input())
+                    put(a, mmm)
+                    print("Income was added!")
+                elif choice2 == "3":
+                    print("Enter card number:")
+                    sendcard = int(input())
+                    try:
+                        x = cursor.execute(f"SELECT * FROM card WHERE number = {sendcard}").fetchone()[1]
+                    except:
+                        x = ''
+                    if checkcard(sendcard) is True:
+                        if str(sendcard) == x:
+                            xx = cursor.execute(f"SELECT balance FROM card WHERE number = {str(a)}").fetchone()[0]
+                            print(a)
+                            print("How much money you want to transfer?")
+                            sendbabki = input()
+                            if xx < int(sendbabki):
+                                print("Not enough money!")
+                            elif sendcard == int(a):
+                                print("You can't transfer money to the same account!")
+                            else:
+                                send(a, sendcard, sendbabki)
+                                print('Success!')
+                        else:
+                            print("Such a card does not exist.")
+                    elif checkcard(sendcard) is False:
+                        print("Probably you made mistake in the card number. Please try again!")
+                elif choice2 == "4":
+                    close(card.card_num)
+                    print("The account has been closed!")
+                    break
+                elif choice2 == "5":
+                    break
+                elif choice2 == "0":
+                    break
+        else:
+            print("Wrong card number or PIN!")
+        if choice2 == "0":
+            break
+print("Bye!")
+
+
