@@ -38,7 +38,10 @@ while calc_loop:
             print('Invalid identifier')
     else:
         try:
-            print(eval(user_input.strip(), dict_with_variables))
+            if "//" not in user_input:
+                print(int(eval(user_input.strip(), dict_with_variables)))
+            else:
+                print('Invalid expression')
         except NameError:
             print('Unknown variable')
         except SyntaxError:
